@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV Cleaner | EoNs Automation</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #121212;
+            color: #e0e0e0;
+        }
+        h1 {
+            text-align: center;
+            color: #fff;
+            margin-bottom: 6px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #888;
+            font-size: 14px;
+            margin-bottom: 25px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #bbb;
+            font-weight: 600;
+        }
+        input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            background: #1e1e1e;
+            color: white;
+            margin-bottom: 18px;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 12px 16px;
+            border: none;
+            border-radius: 8px;
+            background: #1565c0;
+            color: white;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 5px 5px 5px 0;
+        }
+        button:hover {
+            background: #0d47a1;
+        }
+        button:disabled {
+            background: #333;
+            cursor: not-allowed;
+        }
+        .secondary {
+            background: #333;
+        }
+        .secondary:hover {
+            background: #444;
+        }
+        .info-box, .result-box {
+            background: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 16px;
+            margin-top: 18px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            font-size: 14px;
+        }
+        th, td {
+            border: 1px solid #333;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background: #252525;
+        }
+        .status {
+            color: #81c784;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>CSV Cleaner</h1>
+    <p class="subtitle">EoNs Automation</p>
+
+    <label for="fileInput">Upload CSV File</label>
+    <input type="file" id="fileInput" accept=".csv">
+
+    <div id="controls" style="display:none;">
+        <button onclick="removeDuplicates()">Remove Duplicates</button>
+        <button onclick="removeEmptyRows()">Remove Empty Rows</button>
+        <button onclick="stripSpaces()">Strip Extra Spaces</button>
+        <button onclick="downloadCSV()" class="secondary">Download Cleaned CSV</button>
+    </div>
+
+    <div class="info-box" id="info" style="display:none;"></div>
+    <div class="result-box" id="preview" style="display:none;"></div>
+
+    <script>
+        let headers = [];
+        let rows = [];
+
+        document.getElementById("fileInput").addEventListener("change", function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const text = event.target.result;
+                parseCSV(text);
+            };
+            reader.readAsText(file);
+        });
+
+        function parseCSV(text) {
+            const lines = text.trim().split(/\r?\n/);
+            headers = lines[0].split(",").map(h => h.trim());
+            rows = lines.slice(1).map(line => {
+                // Simple CSV split (handles basic cases)
+                return line.split(",").map(cell => cell.trim());
+            });
+
+            document.getElementById("controls").style.display = "block";
+            document.getElementById("info").style.display = "block";
+            updateInfo();
+            showPreview();
+        }
+
+        function updateInfo() {
+            document.getElementById("info").innerHTML = `
+                <strong>Loaded:</strong> ${rows.length} rows, ${headers.length} columns<br>
+                <strong>Columns:</strong> ${headers.join(", ")}
+            `;
+        }
+
+        function showPreview() {
+            const preview = document.getElementById("preview");
+            preview.style.display = "block";
+
+            let html = "<table><tr>";
+            headers.forEach(h => html += `<th>${h}</th>`);
+            html += "</tr>";
+
+            // Show first 8 rows only
+            const previewRows = rows.slice(0, 8);
+            previewRows.forEach(row => {
+                html += "<tr>";
+                row.forEach(cell => html += `<td>${cell || ""}</td>`);
+                html += "</tr>";
+            });
+
+            if (rows.length > 8) {
+                html += `<tr><td colspan="${headers.length}" style="color:#888;">... and ${rows.length - 8} more rows</td></tr>`;
+            }
+
+            html += "</table>";
+            preview.innerHTML = html;
+        }
+
+        function removeDuplicates() {
+            const before = rows.length;
+            const seen = new Set();
+            rows = rows.filter(row => {
+                const key = row.join("|");
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
+            updateInfo();
+            showPreview();
+            alert(`Removed ${before - rows.length} duplicate rows.`);
+        }
+
+        function removeEmptyRows() {
+            const before = rows.length;
+            rows = rows.filter(row => row.some(cell => cell !== ""));
+            updateInfo();
+            showPreview();
+            alert(`Removed ${before - rows.length} empty rows.`);
+        }
+
+        function stripSpaces() {
+            rows = rows.map(row => row.map(cell => cell.trim()));
+            headers = headers.map(h => h.trim());
+            updateInfo();
+            showPreview();
+            alert("Stripped extra spaces from all cells.");
+        }
+
+        function downloadCSV() {
+            let csv = headers.join(",") + "\n";
+            rows.forEach(row => {
+                csv += row.join(",") + "\n";
+            });
+
+            const blob = new Blob([csv], { type: "text/csv" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "cleaned_data.csv";
+            link.click();
+        }
+    </script>
+
+</body>
+</html>
