@@ -33,3 +33,8 @@ A practical tool for cleaning messy spreadsheet data.
 ## About
 
 This project is part of **EoNs Automation**.
+
+## License
+
+This project is released under the MIT License.  
+For commercial use or custom versions, contact EoNs Automation.
