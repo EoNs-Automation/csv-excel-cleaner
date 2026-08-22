@@ -18,6 +18,9 @@ A practical tool for cleaning messy spreadsheet data.
 
 [Try the web version here](https://csv-excel-cleaner-4c5911.netlify.app/)
 
+Also in the EoNs Tools Hub:
+https://tool-hub-f5b755.netlify.app/
+
 ## How to Use (Python)
 
 1. Run the script
